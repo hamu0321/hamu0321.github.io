@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>신나는 단어 학습</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: linear-gradient(160deg, #fef6e4 0%, #e0f7fa 100%); color: #333; min-height: 100vh; user-select: none; }
+  .app { max-width: 480px; margin: 0 auto; padding: 16px; }
+  h1 { text-align: center; font-size: 24px; color: #ff7043; margin: 12px 0; }
+
+  .status-bar { text-align: center; margin-bottom: 10px; font-size: 13px; color: #888; }
+  .reload-btn { border: none; background: #4db6ac; color: #fff; padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; margin-left: 6px; }
+
+  .topic-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .topic-btn { border: none; padding: 8px 16px; border-radius: 20px; font-size: 15px; background: #fff; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
+  .topic-btn.active { background: #ff7043; color: #fff; }
+
+  .menu { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 20px; }
+  .menu-card { background: #fff; border-radius: 18px; padding: 22px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform .1s; }
+  .menu-card:active { transform: scale(0.97); }
+  .menu-card .emoji { font-size: 40px; }
+  .menu-card .title { font-size: 20px; font-weight: bold; margin-top: 8px; }
+  .menu-card .desc { font-size: 14px; color: #888; margin-top: 4px; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .back-btn { background: #fff; border: none; padding: 8px 14px; border-radius: 14px; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
+  .progress { font-size: 15px; color: #666; font-weight: bold; }
+
+  .flashcard { perspective: 1000px; height: 280px; margin: 10px 0 20px; cursor: pointer; }
+  .flash-inner { position: relative; width: 100%; height: 100%; transition: transform .5s; transform-style: preserve-3d; }
+  .flashcard.flipped .flash-inner { transform: rotateY(180deg); }
+  .flash-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,0.12); padding: 20px; text-align: center; }
+  .flash-front { background: #fff; }
+  .flash-front .big { font-size: 42px; font-weight: bold; color: #ff7043; }
+  .flash-back { background: #4db6ac; color: #fff; transform: rotateY(180deg); }
+  .flash-back .big { font-size: 36px; font-weight: bold; }
+  .flash-hint { font-size: 14px; color: #aaa; margin-top: 14px; }
+  .nav-row { display: flex; gap: 10px; }
+  .nav-btn { flex: 1; border: none; padding: 16px; border-radius: 16px; font-size: 18px; font-weight: bold; background: #ffb74d; color: #fff; cursor: pointer; }
+  .nav-btn:disabled { background: #ddd; }
+
+  .quiz-q { background: #fff; border-radius: 18px; padding: 28px 20px; text-align: center; margin-bottom: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .quiz-q .label { font-size: 14px; color: #999; }
+  .quiz-q .meaning { font-size: 30px; font-weight: bold; color: #4db6ac; margin-top: 8px; }
+  .options { display: grid; gap: 12px; }
+  .option-btn { border: none; padding: 18px; border-radius: 16px; font-size: 20px; background: #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.08); cursor: pointer; }
+  .option-btn.correct { background: #81c784; color: #fff; }
+  .option-btn.wrong { background: #e57373; color: #fff; }
+  .option-btn:disabled { opacity: 0.7; }
+
+  .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mem-card { aspect-ratio: 3/4; border-radius: 12px; background: #ff7043; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; font-weight: bold; color: #fff; padding: 4px; transition: transform .15s; }
+  .mem-card.flipped { background: #fff; color: #333; box-shadow: inset 0 0 0 2px #4db6ac; }
+  .mem-card.matched { background: #c8e6c9; color: #2e7d32; cursor: default; }
+  .mem-card .face-down { font-size: 22px; }
+
+  .result { text-align: center; background: #fff; border-radius: 18px; padding: 30px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .result .emoji { font-size: 56px; }
+  .result .score { font-size: 26px; font-weight: bold; margin: 10px 0; color: #ff7043; }
+  .result .retry { border: none; padding: 14px 28px; border-radius: 16px; font-size: 17px; font-weight: bold; background: #ff7043; color: #fff; margin-top: 14px; cursor: pointer; }
+
+  .speak-btn { background: none; border: none; font-size: 26px; cursor: pointer; margin-top: 6px; }
+  .loading { text-align: center; color: #888; margin-top: 50px; font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>📚 신나는 단어 학습</h1>
+  <div class="status-bar" id="statusBar">단어를 불러오는 중...</div>
+
+  <div class="topic-bar" id="topicBar"></div>
+
+  <div id="menuScreen" class="screen active">
+    <div class="menu">
+      <div class="menu-card" onclick="startFlash()">
+        <div class="emoji">🃏</div><div class="title">1. 플래시카드</div>
+        <div class="desc">단어와 뜻을 카드로 익혀요</div>
+      </div>
+      <div class="menu-card" onclick="startQuiz()">
+        <div class="emoji">✏️</div><div class="title">2. 뜻 맞히기 퀴즈</div>
+        <div class="desc">뜻을 보고 알맞은 단어를 골라요</div>
+      </div>
+      <div class="menu-card" onclick="startMemory()">
+        <div class="emoji">🎮</div><div class="title">3. 짝 맞추기 게임</div>
+        <div class="desc">단어와 뜻 카드를 짝지어요</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="flashScreen" class="screen">
+    <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="flashProgress"></span></div>
+    <div class="flashcard" id="flashcard" onclick="flipCard()">
+      <div class="flash-inner">
+        <div class="flash-face flash-front">
+          <div class="big" id="flashWord"></div>
+          <button class="speak-btn" onclick="event.stopPropagation(); speak(document.getElementById('flashWord').textContent)">🔊</button>
+          <div class="flash-hint">카드를 누르면 뜻이 보여요</div>
+        </div>
+        <div class="flash-face flash-back"><div class="big" id="flashMeaning"></div></div>
+      </div>
+    </div>
+    <div class="nav-row"><button class="nav-btn" id="prevBtn" onclick="prevCard()">◀ 이전</button><button class="nav-btn" id="nextBtn" onclick="nextCard()">다음 ▶</button></div>
+  </div>
+
+  <div id="quizScreen" class="screen">
+    <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="quizProgress"></span></div>
+    <div id="quizBody"></div>
+  </div>
+
+  <div id="memoryScreen" class="screen">
+    <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="memProgress"></span></div>
+    <div class="memory-grid" id="memoryGrid"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   ★ 구글 시트 연동 설정 ★
+   탭(시트)별로 "웹에 게시 → CSV" 링크를 만들어서 아래에 넣으세요.
+   topic 이름이 곧 화면에 보이는 주제 버튼 이름이 됩니다.
+   url이 빈칸("")인 항목은 무시됩니다.
+   (연결 방법은 코드 아래 안내를 참고하세요)
+   ========================================================= */
+const SHEET_SOURCES = [
+  { topic: "영어 단어", url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_a12ZyftcQPpAbtYxHStqGlz82vbPIYTvDuzWU8sZppGnYddXCA-pNsm-1cT0DS2qIgYl1qOkERQi/pub?gid=0&single=true&output=csv" },
+  { topic: "기파랑", url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_a12ZyftcQPpAbtYxHStqGlz82vbPIYTvDuzWU8sZppGnYddXCA-pNsm-1cT0DS2qIgYl1qOkERQi/pub?gid=651404478&single=true&output=csv" },
+  { topic: "고사성어",  url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_a12ZyftcQPpAbtYxHStqGlz82vbPIYTvDuzWU8sZppGnYddXCA-pNsm-1cT0DS2qIgYl1qOkERQi/pub?gid=813651831&single=true&output=csv" }
+];
+/* ========================================================= */
+
+/* 시트가 없을 때 보여줄 예시 단어 (미리보기용) */
+const SAMPLE_CSV =
+  '주제,단어,뜻\n' +
+  '영어 단어,apple,사과\n' +
+  '영어 단어,banana,바나나\n' +
+  '영어 단어,cat,고양이\n' +
+  '영어 단어,dog,개\n' +
+  '영어 단어,flower,꽃\n' +
+  '영어 단어,school,학교\n' +
+  '한자 단어,學校,학교\n' +
+  '한자 단어,先生,선생님\n' +
+  '한자 단어,學生,학생\n' +
+  '한자 단어,敎室,교실\n' +
+  '고사성어,一石二鳥,한 번에 두 가지 이득\n' +
+  '고사성어,九死一生,여러 번 죽을 고비를 넘기고 살아남\n' +
+  '고사성어,莫上莫下,우열을 가리기 어려움\n';
+
+let WORD_SETS = {};
+let currentTopic = "";
+let words = [];
+
+/* ---------- 단어 불러오기 ---------- */
+function loadData(){
+  document.getElementById('statusBar').textContent = '단어를 불러오는 중...';
+  const sources = SHEET_SOURCES.filter(s => s.url && s.url.trim() !== '');
+
+  if(sources.length === 0){
+    applyParsed(parseCSV(SAMPLE_CSV), '미리보기 단어 (예시, 시트 미연결)');
+    return;
+  }
+
+  const fetches = sources.map(s =>
+    fetch(s.url + (s.url.includes('?') ? '&' : '?') + 't=' + Date.now())
+      .then(r => { if(!r.ok) throw new Error(); return r.text(); })
+      .then(text => ({ topic: s.topic, rows: parseTopicCSV(text), ok: true }))
+      .catch(() => ({ topic: s.topic, rows: [], ok: false }))
+  );
+
+  Promise.all(fetches).then(results => {
+    const sets = {};
+    let failedTopics = [];
+    results.forEach(r => {
+      if(r.rows.length > 0) sets[r.topic] = r.rows;
+      if(!r.ok) failedTopics.push(r.topic);
+    });
+
+    if(Object.keys(sets).length === 0){
+      applyParsed(parseCSV(SAMPLE_CSV), '⚠ 모든 시트를 못 읽어 예시로 표시');
+      return;
+    }
+
+    let label = '구글 시트에서 불러옴';
+    if(failedTopics.length > 0){
+      label = '⚠ 일부 시트 실패(' + failedTopics.join(', ') + ') · 나머지만 표시';
+    }
+    applyParsed(sets, label);
+  });
+}
+function applyParsed(parsed, label){
+  if(Object.keys(parsed).length===0){
+    document.getElementById('statusBar').textContent = '⚠ 단어가 없어요. 시트를 확인해 주세요.';
+    return;
+  }
+  WORD_SETS = parsed;
+  currentTopic = Object.keys(WORD_SETS)[0];
+  words = WORD_SETS[currentTopic];
+  let count = 0; Object.keys(WORD_SETS).forEach(t=> count += WORD_SETS[t].length);
+  const sb = document.getElementById('statusBar');
+  sb.innerHTML = label + ' · 단어 ' + count + '개 <button class="reload-btn" onclick="loadData()">새로고침</button>';
+  buildTopicBar();
+  goMenu();
+}
+
+function splitCSVLine(line){
+  const r=[]; let cur=''; let q=false;
+  for(let i=0;i<line.length;i++){ const c=line[i];
+    if(c==='"'){ if(q&&line[i+1]==='"'){cur+='"';i++;} else q=!q; }
+    else if(c===','&&!q){ r.push(cur); cur=''; }
+    else cur+=c;
+  }
+  r.push(cur); return r.map(s=>s.trim());
+}
+/* 탭별 CSV: 1열=단어, 2열=뜻 (헤더 줄은 건너뜀) */
+function parseTopicCSV(text){
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(lines.length<2) return [];
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const c=splitCSVLine(lines[i]);
+    if(c.length<2) continue;
+    const word=c[0], meaning=c[1];
+    if(!word||!meaning) continue;
+    rows.push({word, meaning});
+  }
+  return rows;
+}
+/* 예시 데이터(주제,단어,뜻 3열 구조)를 주제별로 묶는 파서 — SAMPLE_CSV 전용 */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, '');
+  const lines = text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(lines.length<2) return {};
+  const sets={};
+  for(let i=1;i<lines.length;i++){
+    const c=splitCSVLine(lines[i]);
+    if(c.length<3) continue;
+    const topic=c[0],word=c[1],meaning=c[2];
+    if(!topic||!word||!meaning) continue;
+    if(!sets[topic]) sets[topic]=[];
+    sets[topic].push({word,meaning});
+  }
+  return sets;
+}
+
+/* ---------- 공통 ---------- */
+function shuffle(a){ return a.slice().sort(()=>Math.random()-0.5); }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function goMenu(){ showScreen('menuScreen'); }
+function speak(t){ if(!('speechSynthesis' in window))return; const u=new SpeechSynthesisUtterance(t); u.lang=/[a-zA-Z]/.test(t)?'en-US':'ko-KR'; speechSynthesis.cancel(); speechSynthesis.speak(u); }
+function needWords(min){ if(words.length<min){ alert('이 활동은 단어가 최소 '+min+'개 필요해요.'); return false; } return true; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function buildTopicBar(){
+  const bar=document.getElementById('topicBar'); bar.innerHTML='';
+  Object.keys(WORD_SETS).forEach(topic=>{
+    const b=document.createElement('button');
+    b.className='topic-btn'+(topic===currentTopic?' active':'');
+    b.textContent=topic;
+    b.onclick=()=>{ currentTopic=topic; words=WORD_SETS[topic]; buildTopicBar(); goMenu(); };
+    bar.appendChild(b);
+  });
+}
+
+/* ---------- 플래시카드 ---------- */
+let flashIndex=0;
+function startFlash(){ if(!needWords(1))return; flashIndex=0; renderFlash(); showScreen('flashScreen'); }
+function renderFlash(){
+  const w=words[flashIndex];
+  document.getElementById('flashcard').classList.remove('flipped');
+  document.getElementById('flashWord').textContent=w.word;
+  document.getElementById('flashMeaning').textContent=w.meaning;
+  document.getElementById('flashProgress').textContent=(flashIndex+1)+' / '+words.length;
+  document.getElementById('prevBtn').disabled=flashIndex===0;
+  document.getElementById('nextBtn').textContent=flashIndex===words.length-1?'처음으로 ↻':'다음 ▶';
+}
+function flipCard(){ document.getElementById('flashcard').classList.toggle('flipped'); }
+function prevCard(){ if(flashIndex>0){flashIndex--;renderFlash();} }
+function nextCard(){ flashIndex=(flashIndex<words.length-1)?flashIndex+1:0; renderFlash(); }
+
+/* ---------- 퀴즈 ---------- */
+let quizList=[],quizIndex=0,quizScore=0;
+function startQuiz(){ if(!needWords(2))return; quizList=shuffle(words); quizIndex=0; quizScore=0; renderQuiz(); showScreen('quizScreen'); }
+function renderQuiz(){
+  if(quizIndex>=quizList.length) return renderQuizResult();
+  const correct=quizList[quizIndex];
+  const others=shuffle(words.filter(w=>w.word!==correct.word)).slice(0,3);
+  const options=shuffle([correct,...others]);
+  document.getElementById('quizProgress').textContent=(quizIndex+1)+' / '+quizList.length;
+  let html='<div class="quiz-q"><div class="label">이 뜻을 가진 단어는?</div><div class="meaning">'+escapeHtml(correct.meaning)+'</div></div><div class="options">';
+  options.forEach(o=>{ html+='<button class="option-btn" data-word="'+escapeHtml(o.word)+'">'+escapeHtml(o.word)+'</button>'; });
+  html+='</div>';
+  const body=document.getElementById('quizBody'); body.innerHTML=html;
+  body.querySelectorAll('.option-btn').forEach(btn=>{ btn.onclick=()=>answer(btn,btn.getAttribute('data-word'),correct.word); });
+}
+function answer(btn,chosen,correct){
+  if(chosen===correct){
+    document.querySelectorAll('.option-btn').forEach(b=>{ b.disabled=true; if(b.getAttribute('data-word')===correct)b.classList.add('correct'); });
+    speak(correct);
+    quizScore++;
+    setTimeout(()=>{ quizIndex++; renderQuiz(); },1000);
+  } else {
+    document.querySelectorAll('.option-btn').forEach(b=>{ b.disabled=true; });
+    btn.classList.add('wrong');
+    setTimeout(()=>{ renderQuiz(); },1200);
+  }
+}
+function renderQuizResult(){
+  const e=quizScore===quizList.length?'🏆':quizScore>=quizList.length/2?'😊':'💪';
+  document.getElementById('quizBody').innerHTML='<div class="result"><div class="emoji">'+e+'</div><div class="score">'+quizScore+' / '+quizList.length+' 점</div><div>잘했어요!</div><button class="retry" onclick="startQuiz()">다시 풀기</button></div>';
+}
+
+/* ---------- 메모리 게임 ---------- */
+let memCards=[],memFlipped=[],memMatched=0,memLock=false;
+function startMemory(){
+  if(!needWords(2))return;
+  const picked=shuffle(words).slice(0,Math.min(6,words.length));
+  memCards=[];
+  picked.forEach((w,i)=>{ memCards.push({id:i,text:w.word,type:'word'}); memCards.push({id:i,text:w.meaning,type:'meaning'}); });
+  memCards=shuffle(memCards); memFlipped=[]; memMatched=0; memLock=false;
+  renderMemory(); showScreen('memoryScreen');
+}
+function renderMemory(){
+  const grid=document.getElementById('memoryGrid'); grid.innerHTML='';
+  document.getElementById('memProgress').textContent='짝: '+memMatched+' / '+(memCards.length/2);
+  memCards.forEach((c,idx)=>{ const d=document.createElement('div'); d.className='mem-card'; d.innerHTML='<span class="face-down">❓</span>'; d.onclick=()=>flipMem(idx,d,c); grid.appendChild(d); });
+}
+function flipMem(idx,div,card){
+  if(memLock||div.classList.contains('flipped')||div.classList.contains('matched'))return;
+  div.classList.add('flipped'); div.textContent=card.text; memFlipped.push({idx,div,card});
+  if(memFlipped.length===2){
+    memLock=true; const [a,b]=memFlipped;
+    if(a.card.id===b.card.id&&a.card.type!==b.card.type){
+      setTimeout(()=>{ a.div.classList.add('matched'); b.div.classList.add('matched'); memMatched++;
+        document.getElementById('memProgress').textContent='짝: '+memMatched+' / '+(memCards.length/2);
+        memFlipped=[]; memLock=false; if(memMatched===memCards.length/2) setTimeout(memWin,400); },500);
+    } else {
+      setTimeout(()=>{ a.div.classList.remove('flipped'); b.div.classList.remove('flipped');
+        a.div.innerHTML='<span class="face-down">❓</span>'; b.div.innerHTML='<span class="face-down">❓</span>';
+        memFlipped=[]; memLock=false; },800);
+    }
+  }
+}
+function memWin(){ document.getElementById('memoryGrid').innerHTML='<div class="result" style="grid-column:1/-1"><div class="emoji">🎉</div><div class="score">모두 맞췄어요!</div><button class="retry" onclick="startMemory()">다시 하기</button></div>'; }
+
+/* ---------- 시작 ---------- */
+loadData();
+</script>
+</body>
+</html>
