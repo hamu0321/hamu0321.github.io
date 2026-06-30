@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>신나는 단어 학습</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; background: linear-gradient(160deg, #fef6e4 0%, #e0f7fa 100%); color: #333; min-height: 100vh; user-select: none; }
+  .app { max-width: 480px; margin: 0 auto; padding: 16px; }
+  h1 { text-align: center; font-size: 24px; color: #ff7043; margin: 12px 0; }
+  .status-bar { text-align: center; margin-bottom: 10px; font-size: 13px; color: #888; }
+  .reload-btn { border: none; background: #4db6ac; color: #fff; padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; margin-left: 6px; }
+  .topic-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 12px; }
+  .topic-btn { border: none; padding: 8px 16px; border-radius: 20px; font-size: 15px; background: #fff; color: #555; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
+  .topic-btn.active { background: #ff7043; color: #fff; }
+  .menu { display: grid; grid-template-columns: 1fr; gap: 14px; margin-top: 20px; }
+  .menu-card { background: #fff; border-radius: 18px; padding: 22px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform .1s; }
+  .menu-card:active { transform: scale(0.97); }
+  .menu-card .emoji { font-size: 40px; }
+  .menu-card .title { font-size: 20px; font-weight: bold; margin-top: 8px; }
+  .menu-card .desc { font-size: 14px; color: #888; margin-top: 4px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .top-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .back-btn { background: #fff; border: none; padding: 8px 14px; border-radius: 14px; font-size: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; }
+  .progress { font-size: 15px; color: #666; font-weight: bold; }
+  .flashcard { perspective: 1000px; height: 280px; margin: 10px 0 20px; cursor: pointer; }
+  .flash-inner { position: relative; width: 100%; height: 100%; transition: transform .5s; transform-style: preserve-3d; }
+  .flashcard.flipped .flash-inner { transform: rotateY(180deg); }
+  .flash-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,0.12); padding: 20px; text-align: center; }
+  .flash-front { background: #fff; }
+  .flash-front .big { font-size: 42px; font-weight: bold; color: #ff7043; }
+  .flash-back { background: #4db6ac; color: #fff; transform: rotateY(180deg); }
+  .flash-back .big { font-size: 36px; font-weight: bold; }
+  .flash-hint { font-size: 14px; color: #aaa; margin-top: 14px; }
+  .nav-row { display: flex; gap: 10px; }
+  .nav-btn { flex: 1; border: none; padding: 16px; border-radius: 16px; font-size: 18px; font-weight: bold; background: #ffb74d; color: #fff; cursor: pointer; }
+  .nav-btn:disabled { background: #ddd; }
+  .quiz-q { background: #fff; border-radius: 18px; padding: 28px 20px; text-align: center; margin-bottom: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .quiz-q .label { font-size: 14px; color: #999; }
+  .quiz-q .meaning { font-size: 30px; font-weight: bold; color: #4db6ac; margin-top: 8px; }
+  .options { display: grid; gap: 12px; }
+  .option-btn { border: none; padding: 18px; border-radius: 16px; font-size: 20px; background: #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.08); cursor: pointer; }
+  .option-btn.correct { background: #81c784; color: #fff; }
+  .option-btn.wrong { background: #e57373; color: #fff; }
+  .option-btn:disabled { opacity: 0.7; }
+  .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mem-card { aspect-ratio: 3/4; border-radius: 12px; background: #ff7043; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; font-weight: bold; color: #fff; padding: 4px; transition: transform .15s; }
+  .mem-card.flipped { background: #fff; color: #333; box-shadow: inset 0 0 0 2px #4db6ac; }
+  .mem-card.matched { background: #c8e6c9; color: #2e7d32; cursor: default; }
+  .mem-card .face-down { font-size: 22px; }
+  .result { text-align: center; background: #fff; border-radius: 18px; padding: 30px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .result .emoji { font-size: 56px; }
+  .result .score { font-size: 26px; font-weight: bold; margin: 10px 0; color: #ff7043; }
+  .result .retry { border: none; padding: 14px 28px; border-radius: 16px; font-size: 17px; font-weight: bold; background: #ff7043; color: #fff; margin-top: 14px; cursor: pointer; }
+  .speak-btn { background: none; border: none; font-size: 26px; cursor: pointer; margin-top: 6px; }
+
+  /* ---- 자녀 선택 화면 ---- */
+  .child-select { text-align: center; margin-top: 20px; }
+  .child-select h2 { font-size: 20px; color: #ff7043; margin-bottom: 20px; }
+  .child-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 20px; }
+  .child-card { background: #fff; border-radius: 18px; padding: 24px 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); cursor: pointer; transition: transform .1s; }
+  .child-card:active { transform: scale(0.97); }
+  .child-card .child-avatar { font-size: 44px; }
+  .child-card .child-name { font-size: 16px; font-weight: bold; margin-top: 8px; }
+  .child-card .child-points { font-size: 13px; color: #ff7043; margin-top: 4px; }
+  .child-add-btn { border: 2px dashed #ddd; background: transparent; border-radius: 18px; padding: 24px 16px; cursor: pointer; color: #aaa; font-size: 14px; }
+  .add-child-form { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin-top: 10px; }
+  .add-child-form input { width: 100%; border: 1px solid #ddd; border-radius: 10px; padding: 12px; font-size: 16px; margin-bottom: 10px; }
+  .avatar-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .avatar-opt { font-size: 32px; padding: 6px; border-radius: 10px; cursor: pointer; border: 2px solid transparent; }
+  .avatar-opt.selected { border-color: #ff7043; background: #fff3e0; }
+  .form-btn { border: none; background: #ff7043; color: #fff; border-radius: 12px; padding: 12px 24px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%; }
+  .form-btn.cancel { background: #eee; color: #666; margin-top: 8px; }
+
+  /* ---- 포인트 / 보상 / 부모님 ---- */
+  .point-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .point-chip { background: #fff; border-radius: 20px; padding: 8px 18px; font-size: 16px; font-weight: bold; color: #ff7043; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .child-badge { background: #fff; border-radius: 20px; padding: 8px 14px; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; color: #555; }
+  .point-pop { position: fixed; left: 50%; top: 40%; transform: translate(-50%,-50%); background: #ffb74d; color: #fff; font-size: 22px; font-weight: bold; padding: 14px 26px; border-radius: 20px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); opacity: 0; pointer-events: none; z-index: 50; transition: opacity .2s, transform .2s; }
+  .point-pop.show { opacity: 1; transform: translate(-50%,-60%); }
+  .menu-card.small { padding: 16px; }
+  .menu-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+  .menu-row .menu-card .emoji { font-size: 30px; }
+  .menu-row .menu-card .title { font-size: 16px; }
+  .menu-row .menu-card .desc { font-size: 12px; }
+  .reward-list { display: grid; gap: 12px; }
+  .reward-card { background: #fff; border-radius: 16px; padding: 16px; box-shadow: 0 3px 6px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .reward-info .reward-name { font-size: 17px; font-weight: bold; }
+  .reward-info .reward-cost { font-size: 14px; color: #ff7043; margin-top: 2px; }
+  .reward-btn { border: none; padding: 10px 16px; border-radius: 14px; font-size: 14px; font-weight: bold; background: #4db6ac; color: #fff; cursor: pointer; white-space: nowrap; }
+  .reward-btn:disabled { background: #ddd; color: #999; cursor: default; }
+  .reward-btn.pending { background: #ffb74d; }
+  .empty-note { text-align: center; color: #999; font-size: 14px; margin-top: 30px; }
+  .pin-screen { text-align: center; margin-top: 40px; }
+  .pin-screen .pin-title { font-size: 18px; font-weight: bold; margin-bottom: 6px; }
+  .pin-screen .pin-sub { font-size: 13px; color: #999; margin-bottom: 20px; }
+  .pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 22px; }
+  .pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ddd; }
+  .pin-dot.filled { background: #ff7043; border-color: #ff7043; }
+  .pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; max-width: 260px; margin: 0 auto; }
+  .pin-key { padding: 18px 0; border-radius: 16px; border: none; background: #fff; font-size: 22px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.08); cursor: pointer; }
+  .pin-key:active { transform: scale(0.95); }
+  .pin-key.wide { font-size: 14px; color: #888; box-shadow: none; background: transparent; }
+  .pin-error { color: #e57373; font-size: 14px; margin-top: 10px; min-height: 18px; }
+  .parent-section { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 3px 6px rgba(0,0,0,0.08); }
+  .parent-section h3 { margin: 0 0 12px; font-size: 16px; color: #555; }
+  .parent-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f1f1; gap: 10px; }
+  .parent-row:last-child { border-bottom: none; }
+  .parent-form { display: flex; gap: 8px; margin-bottom: 4px; }
+  .parent-form input { flex: 1; border: 1px solid #ddd; border-radius: 10px; padding: 10px; font-size: 14px; min-width: 0; }
+  .parent-form button, .small-btn { border: none; background: #ff7043; color: #fff; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: bold; cursor: pointer; white-space: nowrap; }
+  .small-btn.outline { background: #fff; color: #e57373; box-shadow: inset 0 0 0 1.5px #e57373; padding: 8px 12px; font-size: 13px; }
+  .small-btn.approve { background: #81c784; }
+  .small-btn.deny { background: #e57373; }
+  .parent-points { display: flex; align-items: center; gap: 8px; }
+  .pending-badge { background: #fff3e0; color: #ff7043; font-size: 12px; padding: 3px 8px; border-radius: 10px; font-weight: bold; }
+  .logout-link { display: block; text-align: center; margin-top: 6px; color: #999; font-size: 13px; background: none; border: none; cursor: pointer; }
+  .child-tab-bar { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; }
+  .child-tab { border: none; padding: 8px 14px; border-radius: 16px; font-size: 14px; background: #eee; color: #555; cursor: pointer; white-space: nowrap; }
+  .child-tab.active { background: #ff7043; color: #fff; }
+  .db-loading { text-align: center; color: #888; padding: 30px 0; font-size: 14px; }
+
+  /* ---- 스펠링 게임 ---- */
+  .spell-q { background: #fff; border-radius: 18px; padding: 24px 20px; text-align: center; margin-bottom: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .spell-meaning { font-size: 26px; font-weight: bold; color: #4db6ac; margin-bottom: 10px; }
+  .spell-speak-btn { background: #fff3e0; border: none; border-radius: 50%; width: 52px; height: 52px; font-size: 24px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.1); margin-bottom: 4px; display: inline-flex; align-items: center; justify-content: center; }
+  .spell-speak-btn:active { transform: scale(0.93); background: #ffe0b2; }
+  .spell-speak-label { font-size: 12px; color: #aaa; margin-bottom: 14px; }
+  .scramble-wrap { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 18px; }
+  .scramble-tile { background: #fff; border: 2px solid #ffb74d; border-radius: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: #ff7043; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+  .spell-input-wrap { position: relative; margin-bottom: 12px; }
+  .spell-input { width: 100%; border: 2px solid #ddd; border-radius: 16px; padding: 16px; font-size: 24px; text-align: center; letter-spacing: 4px; font-weight: bold; color: #333; box-sizing: border-box; outline: none; }
+  .spell-input:focus { border-color: #4db6ac; }
+  .spell-input.correct { border-color: #81c784; background: #f1f8f1; color: #2e7d32; }
+  .spell-input.wrong { border-color: #e57373; background: #fff1f1; animation: shake .3s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+  .spell-submit { width: 100%; border: none; background: #ff7043; color: #fff; border-radius: 16px; padding: 16px; font-size: 18px; font-weight: bold; cursor: pointer; }
+  .spell-submit:disabled { background: #ddd; }
+  .spell-feedback { text-align: center; font-size: 15px; min-height: 22px; margin-bottom: 10px; font-weight: bold; }
+  .spell-feedback.ok { color: #81c784; }
+  .spell-feedback.ng { color: #e57373; }</style>
+</head>
+<body>
+<div class="app">
+  <h1>📚 신나는 단어 학습</h1>
+  <div class="status-bar" id="statusBar">불러오는 중...</div>
+
+  <!-- 자녀 선택 화면 -->
+  <div id="childSelectScreen" style="display:block;">
+    <div class="child-select">
+      <h2>누가 공부할까요? 👋</h2>
+      <div class="child-grid" id="childGrid"></div>
+      <div id="addChildForm" style="display:none;">
+        <div class="add-child-form">
+          <input type="text" id="newChildName" placeholder="이름 (예: 지호)" maxlength="10">
+          <div class="avatar-row" id="avatarRow"></div>
+          <button class="form-btn" onclick="confirmAddChild()">추가하기</button>
+          <button class="form-btn cancel" onclick="hideAddChildForm()">취소</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 (학습) 화면 -->
+  <div id="mainArea" style="display:none;">
+    <div class="point-bar">
+      <div class="point-chip">⭐ <span id="pointDisplay">0</span> P</div>
+      <div class="child-badge" onclick="switchChild()" id="childBadge">👤 -</div>
+    </div>
+    <div class="point-pop" id="pointPop"></div>
+    <div class="topic-bar" id="topicBar"></div>
+
+    <div id="menuScreen" class="screen active">
+      <div class="menu">
+        <div class="menu-card" onclick="startFlash()">
+          <div class="emoji">🃏</div><div class="title">1. 플래시카드</div>
+          <div class="desc">단어와 뜻을 카드로 익혀요</div>
+        </div>
+        <div class="menu-card" onclick="startQuiz()">
+          <div class="emoji">✏️</div><div class="title">2. 뜻 맞히기 퀴즈</div>
+          <div class="desc">뜻을 보고 알맞은 단어를 골라요 (정답시 포인트!)</div>
+        </div>
+        <div class="menu-card" onclick="startMemory()">
+          <div class="emoji">🎮</div><div class="title">3. 짝 맞추기 게임</div>
+          <div class="desc">단어와 뜻 카드를 짝지어요</div>
+        </div>
+        <div class="menu-card" id="spellingMenuCard" onclick="startSpelling()" style="display:none;">
+          <div class="emoji">⌨️</div><div class="title">4. 스펠링 게임</div>
+          <div class="desc">뜻을 보고 영어 단어를 직접 입력해요</div>
+        </div>
+      </div>
+      <div class="menu-row">
+        <div class="menu-card small" onclick="openRewardShop()">
+          <div class="emoji">🎁</div><div class="title">보상 상점</div>
+          <div class="desc">포인트로 보상 신청</div>
+        </div>
+        <div class="menu-card small" onclick="openParent()">
+          <div class="emoji">👨‍👩‍👧</div><div class="title">부모님</div>
+          <div class="desc">보상 · 포인트 관리</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="rewardScreen" class="screen">
+      <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress">🎁 보상 상점</span></div>
+      <div id="rewardBody"></div>
+    </div>
+
+    <div id="parentScreen" class="screen">
+      <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress">👨‍👩‍👧 부모님</span></div>
+      <div id="parentBody"></div>
+    </div>
+
+    <div id="flashScreen" class="screen">
+      <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="flashProgress"></span></div>
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="flash-inner">
+          <div class="flash-face flash-front">
+            <div class="big" id="flashWord"></div>
+            <div id="flashPhonetic" style="font-size:16px;color:#aaa;margin-top:4px;min-height:22px;letter-spacing:1px;"></div>
+            <button class="speak-btn" onclick="speakFlashWord(event)">🔊</button>
+            <div class="flash-hint">카드를 누르면 뜻이 보여요</div>
+          </div>
+          <div class="flash-face flash-back"><div class="big" id="flashMeaning"></div></div>
+        </div>
+      </div>
+      <div class="nav-row"><button class="nav-btn" id="prevBtn" onclick="prevCard()">◀ 이전</button><button class="nav-btn" id="nextBtn" onclick="nextCard()">다음 ▶</button></div>
+    </div>
+
+    <div id="quizScreen" class="screen">
+      <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="quizProgress"></span></div>
+      <div id="quizBody"></div>
+    </div>
+
+    <div id="memoryScreen" class="screen">
+      <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="memProgress"></span></div>
+      <div class="memory-grid" id="memoryGrid"></div>
+    </div>
+
+    <div id="spellingScreen" class="screen">
+      <div class="top-row"><button class="back-btn" onclick="goMenu()">← 메뉴</button><span class="progress" id="spellingProgress"></span></div>
+      <div id="spellingBody"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot }
+  from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+/* =========================================================
+   ★ Firebase 설정 ★
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyC6eI9b1AkSCdVA267bQkiR90XJhiq5NeE",
+  authDomain: "voca-database-1cbc6.firebaseapp.com",
+  projectId: "voca-database-1cbc6",
+  storageBucket: "voca-database-1cbc6.firebasestorage.app",
+  messagingSenderId: "863730135770",
+  appId: "1:863730135770:web:7b77569d3641097b422be3"
+};
+
+/* =========================================================
+   ★ 구글 시트 연동 설정 ★
+   ========================================================= */
+const SHEET_SOURCES = [
+  { topic: "영어 단어", url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_a12ZyftcQPpAbtYxHStqGlz82vbPIYTvDuzWU8sZppGnYddXCA-pNsm-1cT0DS2qIgYl1qOkERQi/pub?gid=0&single=true&output=csv" },
+  { topic: "기파랑",    url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_a12ZyftcQPpAbtYxHStqGlz82vbPIYTvDuzWU8sZppGnYddXCA-pNsm-1cT0DS2qIgYl1qOkERQi/pub?gid=651404478&single=true&output=csv" },
+  { topic: "고사성어",  url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vR_a12ZyftcQPpAbtYxHStqGlz82vbPIYTvDuzWU8sZppGnYddXCA-pNsm-1cT0DS2qIgYl1qOkERQi/pub?gid=813651831&single=true&output=csv" }
+];
+
+/* =========================================================
+   ★ 가족 코드 시스템 ★
+   처음 앱을 열면 가족 코드를 생성하거나 입력합니다.
+   같은 코드를 입력한 모든 기기가 동일한 데이터를 공유합니다.
+   ========================================================= */
+function getFamilyId(){
+  let id = localStorage.getItem('wordapp_family_id');
+  if(id) return id;
+  return null;
+}
+function setFamilyId(code){
+  const id = 'family_' + code.toUpperCase();
+  localStorage.setItem('wordapp_family_id', id);
+  localStorage.setItem('wordapp_family_code', code.toUpperCase());
+  return id;
+}
+function getFamilyCode(){
+  return localStorage.getItem('wordapp_family_code') || '';
+}
+function validateCode(code){
+  const clean = code.replace(/\s/g,'').toUpperCase();
+  if(!/^[A-Z]{4,}$/.test(clean)){
+    return { ok: false, msg: '영문(알파벳)만 사용할 수 있고 최소 4자리 이상이어야 해요.' };
+  }
+  return { ok: true, code: clean };
+}
+const AVATARS = ['🐯','🐻','🐸','🐼','🦊','🐰','🐧','🦁'];
+
+/* ---- Firebase 초기화 ---- */
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+let familyRef = null;
+
+/* ---- 전역 상태 ---- */
+let familyData = null;
+let currentChildId = null;
+let unsubscribe = null;
+let FAMILY_ID = null;
+
+/* =========================================================
+   가족 코드 화면 렌더링
+   ========================================================= */
+function renderFamilyCodeScreen(){
+  document.getElementById('childSelectScreen').style.display = 'none';
+  document.getElementById('mainArea').style.display = 'none';
+  let screen = document.getElementById('familyCodeScreen');
+  if(!screen){
+    screen = document.createElement('div');
+    screen.id = 'familyCodeScreen';
+    document.querySelector('.app').appendChild(screen);
+  }
+  screen.style.display = 'block';
+  screen.innerHTML = `
+    <div style="text-align:center; margin-top:30px;">
+      <div style="font-size:40px;">👨‍👩‍👧</div>
+      <div style="font-size:18px; font-weight:bold; margin:12px 0 6px;">가족 코드 설정</div>
+      <div style="font-size:13px; color:#999; margin-bottom:24px; line-height:1.6;">
+        영문(알파벳)만 사용, 최소 4자리 이상<br>
+        모든 가족 기기에서 같은 코드를 입력하면<br>데이터가 공유돼요
+      </div>
+      <div style="background:#fff; border-radius:16px; padding:20px; box-shadow:0 4px 10px rgba(0,0,0,0.08);">
+        <div style="font-size:14px; color:#555; margin-bottom:6px; font-weight:bold;">우리 가족만의 코드를 입력하세요</div>
+        <div style="font-size:12px; color:#999; margin-bottom:14px;">예: HAMU · KIDS2024 · FAMILY</div>
+        <input id="codeInput" type="text" placeholder="예: HAMU" maxlength="20"
+          style="width:100%; border:1.5px solid #ddd; border-radius:10px; padding:14px; font-size:22px; text-align:center; letter-spacing:4px; font-weight:bold; color:#ff7043; box-sizing:border-box; margin-bottom:10px;">
+        <div id="codeError" style="color:#e57373; font-size:13px; margin-bottom:10px; min-height:16px;"></div>
+        <button onclick="submitFamilyCode()" style="border:none; background:#ff7043; color:#fff; border-radius:12px; padding:14px; font-size:16px; font-weight:bold; cursor:pointer; width:100%;">이 코드로 시작하기</button>
+      </div>
+      <div style="margin-top:14px; font-size:12px; color:#bbb; line-height:1.8;">
+        ✔ 처음 입력하는 코드라면 새로 만들어져요<br>
+        ✔ 이미 사용 중인 코드를 입력하면 기존 데이터에 연결돼요<br>
+        ✔ 코드는 대소문자 구분 없이 동일하게 처리돼요
+      </div>
+    </div>
+  `;
+}
+
+async function submitFamilyCode(){
+  const btn = document.querySelector('#familyCodeScreen button[onclick="submitFamilyCode()"]');
+  if(btn) btn.disabled = true;
+  const raw = document.getElementById('codeInput').value.trim();
+  const input = raw.replace(/[^a-zA-Z]/g, '').toUpperCase();
+  const result = validateCode(input);
+  if(!result.ok){
+    document.getElementById('codeError').textContent = result.msg;
+    if(btn) btn.disabled = false;
+    return;
+  }
+  document.getElementById('codeError').textContent = '';
+  FAMILY_ID = setFamilyId(result.code);
+  familyRef = doc(db, 'families', FAMILY_ID);
+  try {
+    const snap = await getDoc(familyRef);
+    if(snap.exists()){
+      await initDB();
+      alert(`✅ "${result.code}" 코드로 연결됐어요!\n기존 가족 데이터를 불러왔어요.`);
+    } else {
+      await initDB();
+      alert(`✅ "${result.code}" 코드로 새 가족이 만들어졌어요!\n다른 가족 기기에서도 같은 코드를 입력하면 연결돼요.`);
+    }
+  } catch(e) {
+    alert('연결에 실패했어요. 인터넷 연결을 확인하고 다시 시도해주세요.');
+    localStorage.removeItem('wordapp_family_id');
+    localStorage.removeItem('wordapp_family_code');
+    FAMILY_ID = null; familyRef = null;
+    if(btn) btn.disabled = false;
+  }
+}
+
+/* =========================================================
+   Firestore 실시간 연결
+   ========================================================= */
+async function initDB(){
+  const screen = document.getElementById('familyCodeScreen');
+  if(screen) screen.style.display = 'none';
+  document.getElementById('statusBar').textContent = '데이터 불러오는 중...';
+  const snap = await getDoc(familyRef);
+  if(!snap.exists()){
+    const init = { pin: null, rewards: [], requests: [], children: [] };
+    await setDoc(familyRef, init);
+    familyData = init;
+  } else {
+    familyData = snap.data();
+  }
+  if(unsubscribe) unsubscribe();
+  unsubscribe = onSnapshot(familyRef, snap => {
+    if(snap.exists()){
+      familyData = snap.data();
+      refreshPointDisplay();
+      if(document.getElementById('rewardScreen').classList.contains('active')) renderRewardShop();
+      if(document.getElementById('parentScreen').classList.contains('active') && parentUnlocked) renderParentDashboard();
+      if(document.getElementById('childSelectScreen').style.display !== 'none') renderChildSelect();
+    }
+  });
+  loadData();
+  document.getElementById('childSelectScreen').style.display = 'block';
+  renderChildSelect();
+}
+
+async function saveFamily(){
+  await setDoc(familyRef, familyData);
+}
+
+/* =========================================================
+   자녀 선택 화면
+   ========================================================= */
+function renderChildSelect(){
+  const grid = document.getElementById('childGrid');
+  const children = familyData.children || [];
+  let html = '';
+  children.forEach(c => {
+    html += `<div class="child-card" onclick="selectChild('${c.id}')">
+      <div class="child-avatar">${c.avatar}</div>
+      <div class="child-name">${escapeHtml(c.name)}</div>
+      <div class="child-points">⭐ ${c.points || 0} P</div>
+    </div>`;
+  });
+  // 자녀 추가 버튼
+  html += `<button class="child-add-btn" onclick="showAddChildForm()">➕<br>자녀 추가</button>`;
+  grid.innerHTML = html;
+}
+
+function showAddChildForm(){
+  document.getElementById('addChildForm').style.display = 'block';
+  // 아바타 선택 렌더
+  const row = document.getElementById('avatarRow');
+  row.innerHTML = AVATARS.map((a,i) =>
+    `<span class="avatar-opt${i===0?' selected':''}" onclick="selectAvatar(this)" data-avatar="${a}">${a}</span>`
+  ).join('');
+}
+function hideAddChildForm(){
+  document.getElementById('addChildForm').style.display = 'none';
+  document.getElementById('newChildName').value = '';
+}
+function selectAvatar(el){
+  document.querySelectorAll('.avatar-opt').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+}
+async function confirmAddChild(){
+  const name = document.getElementById('newChildName').value.trim();
+  if(!name){ alert('이름을 입력해주세요.'); return; }
+  const avatar = document.querySelector('.avatar-opt.selected')?.dataset.avatar || '🐯';
+  const child = { id: 'child_'+Date.now(), name, avatar, points: 0 };
+  if(!familyData.children) familyData.children = [];
+  familyData.children.push(child);
+  await saveFamily();
+  hideAddChildForm();
+  renderChildSelect();
+}
+
+function selectChild(childId){
+  currentChildId = childId;
+  const child = getChild();
+  if(!child) return;
+  document.getElementById('childSelectScreen').style.display = 'none';
+  document.getElementById('mainArea').style.display = 'block';
+  document.getElementById('childBadge').textContent = child.avatar + ' ' + child.name;
+  refreshPointDisplay();
+  loadDataForChild(child);
+  showScreen('menuScreen');
+}
+function getChild(){ return (familyData.children||[]).find(c=>c.id===currentChildId); }
+function switchChild(){
+  document.getElementById('mainArea').style.display = 'none';
+  document.getElementById('childSelectScreen').style.display = 'block';
+  currentChildId = null;
+  renderChildSelect();
+}
+
+/* =========================================================
+   구글 시트 단어 불러오기
+   ========================================================= */
+const SAMPLE_CSV =
+  '주제,단어,뜻\n영어 단어,apple,사과\n영어 단어,banana,바나나\n영어 단어,cat,고양이\n영어 단어,dog,개\n영어 단어,flower,꽃\n영어 단어,school,학교\n한자 단어,學校,학교\n한자 단어,先生,선생님\n한자 단어,學生,학생\n한자 단어,敎室,교실\n고사성어,一石二鳥,한 번에 두 가지 이득\n고사성어,九死一生,여러 번 죽을 고비를 넘기고 살아남\n고사성어,莫上莫下,우열을 가리기 어려움\n';
+
+let WORD_SETS = {};
+let currentTopic = "";
+let words = [];
+
+function loadData(){
+  // 기본 시트 로딩 (자녀 선택 전 또는 아이별 시트 미설정 시)
+  const sources = SHEET_SOURCES.filter(s=>s.url&&s.url.trim()!=='');
+  if(sources.length===0){ applyParsed(parseCSV(SAMPLE_CSV),'미리보기 단어 (예시, 시트 미연결)'); return; }
+  fetchSources(sources);
+}
+
+function loadDataForChild(child){
+  // 아이별 시트가 설정되어 있으면 그 시트로, 없으면 기본 시트로
+  const childSheets = child.sheets || [];
+  const activeSources = childSheets.filter(s=>s.url&&s.url.trim()!=='');
+  if(activeSources.length > 0){
+    document.getElementById('statusBar').textContent = child.name + '의 단어를 불러오는 중...';
+    fetchSources(activeSources);
+  } else {
+    // 아이별 시트 미설정 → 기본 시트 사용
+    const defaultSources = SHEET_SOURCES.filter(s=>s.url&&s.url.trim()!=='');
+    if(defaultSources.length===0){ applyParsed(parseCSV(SAMPLE_CSV),'미리보기 단어 (예시)'); return; }
+    fetchSources(defaultSources);
+  }
+}
+
+function fetchSources(sources){
+  const fetches = sources.map(s=>
+    fetch(s.url+(s.url.includes('?')?'&':'?')+'t='+Date.now())
+      .then(r=>{if(!r.ok)throw new Error();return r.text();})
+      .then(text=>({topic:s.topic,rows:parseTopicCSV(text),ok:true}))
+      .catch(()=>({topic:s.topic,rows:[],ok:false}))
+  );
+  Promise.all(fetches).then(results=>{
+    const sets={};let fails=[];
+    results.forEach(r=>{if(r.rows.length>0)sets[r.topic]=r.rows;if(!r.ok)fails.push(r.topic);});
+    if(Object.keys(sets).length===0){applyParsed(parseCSV(SAMPLE_CSV),'⚠ 모든 시트를 못 읽어 예시로 표시');return;}
+    applyParsed(sets,fails.length?'⚠ 일부 시트 실패('+fails.join(', ')+')':'구글 시트에서 불러옴');
+  });
+}
+function applyParsed(parsed,label){
+  if(Object.keys(parsed).length===0){document.getElementById('statusBar').textContent='⚠ 단어가 없어요.';return;}
+  WORD_SETS=parsed;currentTopic=Object.keys(WORD_SETS)[0];words=WORD_SETS[currentTopic];
+  let count=0;Object.keys(WORD_SETS).forEach(t=>count+=WORD_SETS[t].length);
+  document.getElementById('statusBar').innerHTML=label+' · 단어 '+count+'개 <button class="reload-btn" onclick="reloadCurrentChild()">새로고침</button>';
+  buildTopicBar();
+}
+
+function reloadCurrentChild(){
+  const child = getChild();
+  if(child){ loadDataForChild(child); }
+  else { loadData(); }
+}
+
+/* =========================================================
+   발음 기호 캐시 & API 연동 (영어 카테고리 전용)
+   ========================================================= */
+const pronunciationCache = {}; // { word: 'ˈæpəl' }
+
+async function fetchPronunciation(word){
+  const key = word.toLowerCase();
+  if(pronunciationCache[key] !== undefined) return; // 이미 조회한 단어
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`);
+    if(!res.ok){ pronunciationCache[key]=''; return; }
+    const data = await res.json();
+    // phonetics 배열에서 발음 기호 찾기 (text 필드 우선)
+    let phonetic = '';
+    const entry = data[0];
+    if(entry){
+      // 1순위: 최상위 phonetic 필드
+      if(entry.phonetic) phonetic = entry.phonetic;
+      // 2순위: phonetics 배열에서 text가 있는 것
+      if(!phonetic && entry.phonetics){
+        const found = entry.phonetics.find(p=>p.text&&p.text.trim());
+        if(found) phonetic = found.text;
+      }
+    }
+    pronunciationCache[key] = phonetic || '';
+  } catch(e){
+    pronunciationCache[key] = '';
+  }
+}
+
+function prefetchPronunciations(wordList){
+  // 백그라운드에서 순차적으로 가져오기 (과도한 동시 요청 방지)
+  const englishWords = wordList.filter(w => /^[a-zA-Z\s'-]+$/.test(w.word));
+  let chain = Promise.resolve();
+  englishWords.forEach(w => {
+    chain = chain.then(() => fetchPronunciation(w.word)).then(() => new Promise(r=>setTimeout(r,80)));
+  });
+}
+function splitCSVLine(line){
+  const r=[];let cur='';let q=false;
+  for(let i=0;i<line.length;i++){const c=line[i];
+    if(c==='"'){if(q&&line[i+1]==='"'){cur+='"';i++;}else q=!q;}
+    else if(c===','&&!q){r.push(cur);cur='';}else cur+=c;}
+  r.push(cur);return r.map(s=>s.trim());
+}
+function parseTopicCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(lines.length<2)return[];
+  const rows=[];
+  for(let i=1;i<lines.length;i++){const c=splitCSVLine(lines[i]);if(c.length<2)continue;const word=c[0],meaning=c[1];if(!word||!meaning)continue;rows.push({word,meaning});}
+  return rows;
+}
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()!=='');
+  if(lines.length<2)return{};
+  const sets={};
+  for(let i=1;i<lines.length;i++){const c=splitCSVLine(lines[i]);if(c.length<3)continue;const topic=c[0],word=c[1],meaning=c[2];if(!topic||!word||!meaning)continue;if(!sets[topic])sets[topic]=[];sets[topic].push({word,meaning});}
+  return sets;
+}
+
+/* =========================================================
+   공통 유틸
+   ========================================================= */
+function shuffle(a){return a.slice().sort(()=>Math.random()-0.5);}
+function showScreen(id){
+  document.querySelectorAll('#mainArea .screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goMenu(){showScreen('menuScreen');}
+function speak(t){if(!('speechSynthesis' in window))return;const u=new SpeechSynthesisUtterance(t);u.lang=/[a-zA-Z]/.test(t)?'en-US':'ko-KR';speechSynthesis.cancel();speechSynthesis.speak(u);}
+function needWords(min){if(words.length<min){alert('이 활동은 단어가 최소 '+min+'개 필요해요.');return false;}return true;}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function buildTopicBar(){
+  const bar=document.getElementById('topicBar');bar.innerHTML='';
+  Object.keys(WORD_SETS).forEach(topic=>{
+    const b=document.createElement('button');b.className='topic-btn'+(topic===currentTopic?' active':'');b.textContent=topic;
+    b.onclick=()=>{
+      currentTopic=topic;words=WORD_SETS[topic];
+      buildTopicBar();goMenu();
+      if(topic.includes('영어')){
+        setTimeout(()=>{ try{ prefetchPronunciations(words); }catch(e){} }, 0);
+      }
+    };
+    bar.appendChild(b);
+  });
+  updateSpellingMenuVisibility();
+}
+function updateSpellingMenuVisibility(){
+  const card = document.getElementById('spellingMenuCard');
+  if(!card) return;
+  card.style.display = currentTopic && currentTopic.includes('영어') ? 'block' : 'none';
+}
+
+/* =========================================================
+   포인트
+   ========================================================= */
+function refreshPointDisplay(){
+  const child=getChild();
+  const el=document.getElementById('pointDisplay');
+  if(el&&child) el.textContent=child.points||0;
+}
+async function addPoints(n){
+  const child=getChild();if(!child)return;
+  child.points=(child.points||0)+n;
+  await saveFamily();
+  refreshPointDisplay();
+  showPointPop('+'+n+' 포인트!');
+}
+function showPointPop(text){
+  const pop=document.getElementById('pointPop');if(!pop)return;
+  pop.textContent='⭐ '+text;pop.classList.add('show');
+  clearTimeout(window._pointPopTimer);
+  window._pointPopTimer=setTimeout(()=>pop.classList.remove('show'),900);
+}
+
+/* =========================================================
+   플래시카드
+   ========================================================= */
+let flashIndex=0;
+let flashWords=[];
+function startFlash(){if(!needWords(1))return;flashWords=shuffle(words);flashIndex=0;renderFlash();showScreen('flashScreen');}
+function renderFlash(){
+  const w=flashWords[flashIndex];
+  document.getElementById('flashcard').classList.remove('flipped');
+  document.getElementById('flashWord').textContent=w.word;
+  document.getElementById('flashMeaning').textContent=w.meaning;
+  document.getElementById('flashProgress').textContent=(flashIndex+1)+' / '+flashWords.length;
+  document.getElementById('prevBtn').disabled=flashIndex===0;
+  document.getElementById('nextBtn').textContent=flashIndex===flashWords.length-1?'처음으로 ↻':'다음 ▶';
+  // 카드가 바뀔 때마다 자동으로 한 번 발음
+  speak(w.word);
+  // 발음 기호 표시 (영어 카테고리만)
+  const phoneticEl=document.getElementById('flashPhonetic');
+  if(phoneticEl){
+    if(currentTopic.includes('영어')){
+      const cached=pronunciationCache[w.word.toLowerCase()];
+      if(cached!==undefined){
+        phoneticEl.textContent=cached?'['+cached+']':'';
+      } else {
+        phoneticEl.textContent='';
+        // 캐시 없으면 즉시 요청 후 업데이트
+        fetchPronunciation(w.word).then(()=>{
+          // 아직 같은 카드가 보이고 있을 때만 업데이트
+          if(document.getElementById('flashWord').textContent===w.word){
+            const p=pronunciationCache[w.word.toLowerCase()];
+            phoneticEl.textContent=p?'['+p+']':'';
+          }
+        });
+      }
+    } else {
+      phoneticEl.textContent='';
+    }
+  }
+}
+function flipCard(){document.getElementById('flashcard').classList.toggle('flipped');}
+function speakFlashWord(e){
+  if(e && e.stopPropagation) e.stopPropagation();
+  const w = flashWords[flashIndex];
+  if(w) speak(w.word);
+}
+function prevCard(){if(flashIndex>0){flashIndex--;renderFlash();}}
+function nextCard(){flashIndex=(flashIndex<flashWords.length-1)?flashIndex+1:0;renderFlash();}
+
+/* =========================================================
+   퀴즈
+   ========================================================= */
+let quizList=[],quizIndex=0,quizScore=0;
+function startQuiz(){if(!needWords(2))return;quizList=shuffle(words);quizIndex=0;quizScore=0;renderQuiz();showScreen('quizScreen');}
+function renderQuiz(){
+  if(quizIndex>=quizList.length)return renderQuizResult();
+  const correct=quizList[quizIndex];
+  const others=shuffle(words.filter(w=>w.word!==correct.word)).slice(0,3);
+  const options=shuffle([correct,...others]);
+  document.getElementById('quizProgress').textContent=(quizIndex+1)+' / '+quizList.length;
+  let html='<div class="quiz-q"><div class="label">이 뜻을 가진 단어는?</div><div class="meaning">'+escapeHtml(correct.meaning)+'</div></div><div class="options">';
+  options.forEach(o=>{html+='<button class="option-btn" data-word="'+escapeHtml(o.word)+'">'+escapeHtml(o.word)+'</button>';});
+  html+='</div>';
+  const body=document.getElementById('quizBody');body.innerHTML=html;
+  body.querySelectorAll('.option-btn').forEach(btn=>{btn.onclick=()=>answer(btn,btn.getAttribute('data-word'),correct.word);});
+}
+function answer(btn,chosen,correct){
+  if(chosen===correct){
+    document.querySelectorAll('.option-btn').forEach(b=>{b.disabled=true;if(b.getAttribute('data-word')===correct)b.classList.add('correct');});
+    speak(correct);quizScore++;addPoints(1);
+    setTimeout(()=>{quizIndex++;renderQuiz();},1000);
+  } else {
+    document.querySelectorAll('.option-btn').forEach(b=>b.disabled=true);
+    btn.classList.add('wrong');
+    setTimeout(()=>renderQuiz(),1200);
+  }
+}
+function renderQuizResult(){
+  const e=quizScore===quizList.length?'🏆':quizScore>=quizList.length/2?'😊':'💪';
+  document.getElementById('quizBody').innerHTML='<div class="result"><div class="emoji">'+e+'</div><div class="score">'+quizScore+' / '+quizList.length+' 점</div><div>잘했어요!</div><button class="retry" onclick="startQuiz()">다시 풀기</button></div>';
+}
+
+/* =========================================================
+   짝 맞추기 게임
+   ========================================================= */
+let memCards=[],memFlipped=[],memMatched=0,memLock=false;
+function startMemory(){
+  if(!needWords(2))return;
+  const picked=shuffle(words).slice(0,Math.min(6,words.length));
+  memCards=[];
+  picked.forEach((w,i)=>{memCards.push({id:i,text:w.word,type:'word'});memCards.push({id:i,text:w.meaning,type:'meaning'});});
+  memCards=shuffle(memCards);memFlipped=[];memMatched=0;memLock=false;
+  renderMemory();showScreen('memoryScreen');
+}
+function renderMemory(){
+  const grid=document.getElementById('memoryGrid');grid.innerHTML='';
+  document.getElementById('memProgress').textContent='짝: '+memMatched+' / '+(memCards.length/2);
+  memCards.forEach((c,idx)=>{const d=document.createElement('div');d.className='mem-card';d.innerHTML='<span class="face-down">❓</span>';d.onclick=()=>flipMem(idx,d,c);grid.appendChild(d);});
+}
+function flipMem(idx,div,card){
+  if(memLock||div.classList.contains('flipped')||div.classList.contains('matched'))return;
+  div.classList.add('flipped');div.textContent=card.text;memFlipped.push({idx,div,card});
+  if(memFlipped.length===2){
+    memLock=true;const[a,b]=memFlipped;
+    if(a.card.id===b.card.id&&a.card.type!==b.card.type){
+      setTimeout(()=>{a.div.classList.add('matched');b.div.classList.add('matched');memMatched++;
+        document.getElementById('memProgress').textContent='짝: '+memMatched+' / '+(memCards.length/2);
+        memFlipped=[];memLock=false;if(memMatched===memCards.length/2)setTimeout(memWin,400);},500);
+    } else {
+      setTimeout(()=>{a.div.classList.remove('flipped');b.div.classList.remove('flipped');
+        a.div.innerHTML='<span class="face-down">❓</span>';b.div.innerHTML='<span class="face-down">❓</span>';
+        memFlipped=[];memLock=false;},800);
+    }
+  }
+}
+function memWin(){document.getElementById('memoryGrid').innerHTML='<div class="result" style="grid-column:1/-1"><div class="emoji">🎉</div><div class="score">모두 맞췄어요!</div><button class="retry" onclick="startMemory()">다시 하기</button></div>';}
+
+/* =========================================================
+   스펠링 게임 (영어 카테고리 전용)
+   ========================================================= */
+let spellList=[],spellIndex=0,spellScore=0;
+
+function startSpelling(){
+  if(!needWords(1))return;
+  if(!currentTopic.includes('영어')){ alert('스펠링 게임은 영어 카테고리에서만 사용할 수 있어요.'); return; }
+  spellList=shuffle(words);spellIndex=0;spellScore=0;
+  renderSpelling();showScreen('spellingScreen');
+}
+
+function scrambleWord(word){
+  // 글자를 섞되 원래 순서와 최대한 다르게
+  const arr=word.toLowerCase().split('');
+  let shuffled;
+  let tries=0;
+  do {
+    shuffled=arr.slice().sort(()=>Math.random()-0.5);
+    tries++;
+  } while(shuffled.join('')===arr.join('')&&tries<10);
+  return shuffled;
+}
+
+function renderSpelling(){
+  if(spellIndex>=spellList.length){ renderSpellingResult(); return; }
+  const w=spellList[spellIndex];
+  const scrambled=scrambleWord(w.word);
+  document.getElementById('spellingProgress').textContent=(spellIndex+1)+' / '+spellList.length;
+
+  // 스크램블 타일 HTML
+  const tiles=scrambled.map(c=>`<div class="scramble-tile">${c.toUpperCase()}</div>`).join('');
+
+  document.getElementById('spellingBody').innerHTML=`
+    <div class="spell-q">
+      <div class="spell-meaning">${escapeHtml(w.meaning)}</div>
+    </div>
+    <div style="text-align:center; margin-bottom:4px;">
+      <button class="spell-speak-btn" onclick="speakSpelling()" title="발음 듣기">🔊</button>
+    </div>
+    <div class="spell-speak-label">눌러서 발음 듣기</div>
+    <div class="scramble-wrap">${tiles}</div>
+    <div class="spell-feedback" id="spellFeedback"></div>
+    <div class="spell-input-wrap">
+      <input class="spell-input" id="spellInput" type="text" autocomplete="off" autocorrect="off"
+        autocapitalize="none" spellcheck="false" placeholder="스펠링을 입력하세요"
+        onkeydown="if(event.key==='Enter') submitSpell()">
+    </div>
+    <button class="spell-submit" id="spellSubmitBtn" onclick="submitSpell()">확인 ✓</button>
+  `;
+  document.getElementById('spellInput').focus();
+}
+
+function speakSpelling(){
+  // 현재 문제의 단어를 발음 (정답 단어)
+  const w=spellList[spellIndex];
+  speak(w.word);
+}
+
+function submitSpell(){
+  const input=document.getElementById('spellInput');
+  const answer=input.value.trim().toLowerCase();
+  const correct=spellList[spellIndex].word.toLowerCase();
+  const feedback=document.getElementById('spellFeedback');
+  if(answer==='') return;
+  if(answer===correct){
+    input.classList.add('correct');
+    input.disabled=true;
+    document.getElementById('spellSubmitBtn').disabled=true;
+    feedback.textContent='🎉 정답이에요!';
+    feedback.className='spell-feedback ok';
+    speak(spellList[spellIndex].word);
+    spellScore++;
+    addPoints(2);
+    setTimeout(()=>{spellIndex++;renderSpelling();},1200);
+  } else {
+    input.classList.add('wrong');
+    feedback.textContent='❌ 다시 시도해봐요! (스크램블 글자를 참고하세요)';
+    feedback.className='spell-feedback ng';
+    setTimeout(()=>{
+      input.classList.remove('wrong');
+      input.value='';
+      feedback.textContent='';
+      input.focus();
+    },800);
+  }
+}
+
+function renderSpellingResult(){
+  const e=spellScore===spellList.length?'🏆':spellScore>=spellList.length/2?'😊':'💪';
+  document.getElementById('spellingBody').innerHTML=`
+    <div class="result">
+      <div class="emoji">${e}</div>
+      <div class="score">${spellScore} / ${spellList.length} 점</div>
+      <div>잘했어요!</div>
+      <button class="retry" onclick="startSpelling()">다시 풀기</button>
+    </div>`;
+}
+
+/* =========================================================
+   보상 상점 (아이 화면)
+   ========================================================= */
+function openRewardShop(){renderRewardShop();showScreen('rewardScreen');}
+function renderRewardShop(){
+  const body=document.getElementById('rewardBody');
+  const child=getChild();if(!child){body.innerHTML='<div class="empty-note">자녀를 선택해주세요.</div>';return;}
+  const rewards=familyData.rewards||[];
+  if(rewards.length===0){body.innerHTML='<div class="empty-note">아직 등록된 보상이 없어요.<br>부모님께 보상 등록을 부탁해보세요!</div>';return;}
+  let html='<div class="reward-list">';
+  rewards.forEach(r=>{
+    const pending=(familyData.requests||[]).find(q=>q.rewardId===r.id&&q.childId===child.id&&q.status==='pending');
+    const canAfford=(child.points||0)>=r.cost;
+    let btn=pending
+      ?'<button class="reward-btn pending" disabled>승인 대기중</button>'
+      :!canAfford
+        ?'<button class="reward-btn" disabled>포인트 부족</button>'
+        :'<button class="reward-btn" onclick="requestReward(\''+r.id+'\')">신청하기</button>';
+    html+='<div class="reward-card"><div class="reward-info"><div class="reward-name">'+escapeHtml(r.name)+'</div><div class="reward-cost">⭐ '+r.cost+' P</div></div>'+btn+'</div>';
+  });
+  html+='</div>';
+  body.innerHTML=html;
+}
+async function requestReward(rewardId){
+  const child=getChild();if(!child)return;
+  const reward=(familyData.rewards||[]).find(r=>r.id===rewardId);
+  if(!reward)return;
+  if((child.points||0)<reward.cost){alert('포인트가 부족해요.');return;}
+  if(!familyData.requests)familyData.requests=[];
+  familyData.requests.push({id:'req_'+Date.now(),rewardId:reward.id,rewardName:reward.name,cost:reward.cost,childId:child.id,childName:child.name,status:'pending',requestedAt:Date.now()});
+  await saveFamily();
+  renderRewardShop();
+  alert('"'+reward.name+'" 보상을 신청했어요! 부모님의 승인을 기다려주세요. 🎉');
+}
+
+/* =========================================================
+   부모님 화면 (PIN 보호)
+   ========================================================= */
+let pinInput='';let pinMode='check';let pinFirstEntry='';let parentUnlocked=false;
+
+function openParent(){
+  parentUnlocked=false;pinInput='';
+  if(!familyData.pin){pinMode='set';pinFirstEntry='';renderPinScreen('처음이시군요! 사용하실 4자리 PIN을 만들어주세요.');}
+  else{pinMode='check';renderPinScreen('부모님 PIN을 입력해주세요.');}
+  showScreen('parentScreen');
+}
+function renderPinScreen(subtitle,errorMsg){
+  const body=document.getElementById('parentBody');
+  let dots='';for(let i=0;i<4;i++)dots+='<div class="pin-dot'+(i<pinInput.length?' filled':'')+'"></div>';
+  let keys='';
+  ['1','2','3','4','5','6','7','8','9'].forEach(n=>{keys+='<button class="pin-key" onclick="pinPress(\''+n+'\')">'+n+'</button>';});
+  keys+='<button class="pin-key wide" onclick="pinClear()">지우기</button>';
+  keys+='<button class="pin-key" onclick="pinPress(\'0\')">0</button>';
+  keys+='<button class="pin-key wide" onclick="pinBackspace()">←</button>';
+  body.innerHTML='<div class="pin-screen"><div class="pin-title">🔒 부모님 인증</div><div class="pin-sub">'+escapeHtml(subtitle)+'</div><div class="pin-dots">'+dots+'</div><div class="pin-keypad">'+keys+'</div><div class="pin-error">'+(errorMsg?escapeHtml(errorMsg):'')+'</div></div>';
+}
+function pinPress(d){
+  if(pinInput.length>=4)return;
+  pinInput+=d;
+  if(pinInput.length<4){renderPinScreen(pinMode==='set'?(pinFirstEntry?'확인을 위해 한번 더 입력해주세요.':'사용하실 4자리 PIN을 만들어주세요.'):'부모님 PIN을 입력해주세요.');return;}
+  if(pinMode==='set'){
+    if(!pinFirstEntry){pinFirstEntry=pinInput;pinInput='';renderPinScreen('확인을 위해 한번 더 입력해주세요.');}
+    else{
+      if(pinInput===pinFirstEntry){familyData.pin=pinInput;saveFamily().then(()=>{parentUnlocked=true;renderParentDashboard();});}
+      else{pinFirstEntry='';pinInput='';renderPinScreen('사용하실 4자리 PIN을 만들어주세요.','두 PIN이 일치하지 않아요. 다시 시도해주세요.');}
+    }
+  } else {
+    if(pinInput===familyData.pin){parentUnlocked=true;renderParentDashboard();}
+    else{pinInput='';renderPinScreen('부모님 PIN을 입력해주세요.','PIN이 올바르지 않아요.');}
+  }
+}
+function pinBackspace(){pinInput=pinInput.slice(0,-1);renderPinScreen(pinMode==='set'?(pinFirstEntry?'확인을 위해 한번 더 입력해주세요.':'사용하실 4자리 PIN을 만들어주세요.'):'부모님 PIN을 입력해주세요.');}
+function pinClear(){pinInput='';renderPinScreen(pinMode==='set'?(pinFirstEntry?'확인을 위해 한번 더 입력해주세요.':'사용하실 4자리 PIN을 만들어주세요.'):'부모님 PIN을 입력해주세요.');}
+
+/* ---- 부모님 대시보드 ---- */
+function renderParentDashboard(){
+  const body=document.getElementById('parentBody');
+  const children=familyData.children||[];
+  const allRequests=familyData.requests||[];
+  const pendingAll=allRequests.filter(r=>r.status==='pending');
+  let html='';
+
+  // 자녀별 포인트 탭
+  html+='<div class="parent-section"><h3>⭐ 자녀별 포인트</h3>';
+  if(children.length===0){html+='<div class="empty-note" style="margin-top:0;">등록된 자녀가 없어요.</div>';}
+  else{
+    children.forEach(c=>{
+      html+='<div class="parent-row"><div>'+c.avatar+' <b>'+escapeHtml(c.name)+'</b></div>';
+      html+='<div style="display:flex;align-items:center;gap:8px;"><span style="color:#ff7043;font-weight:bold;">'+(c.points||0)+' P</span>';
+      html+='<button class="small-btn" onclick="adjustPoints(\''+c.id+'\',10)">+10</button>';
+      html+='<button class="small-btn outline" onclick="adjustPoints(\''+c.id+'\',-10)">-10</button></div></div>';
+    });
+  }
+  html+='</div>';
+
+  // 신청 내역
+  html+='<div class="parent-section"><h3>📋 보상 신청 내역 '+(pendingAll.length?'<span class="pending-badge">'+pendingAll.length+'건 대기중</span>':'')+'</h3>';
+  if(allRequests.length===0){html+='<div class="empty-note" style="margin-top:0;">아직 신청 내역이 없어요.</div>';}
+  else{
+    allRequests.slice().reverse().forEach(req=>{
+      html+='<div class="parent-row"><div><b>'+escapeHtml(req.childName||'')+'</b> · '+escapeHtml(req.rewardName)+' <span style="color:#999;font-size:13px;">('+req.cost+'P)</span>';
+      if(req.status==='approved')html+=' <span style="color:#81c784;font-size:13px;">✔ 승인완료</span>';
+      if(req.status==='denied')html+=' <span style="color:#e57373;font-size:13px;">✘ 거절됨</span>';
+      html+='</div>';
+      if(req.status==='pending')html+='<div style="display:flex;gap:6px;"><button class="small-btn approve" onclick="resolveRequest(\''+req.id+'\',true)">승인</button><button class="small-btn deny" onclick="resolveRequest(\''+req.id+'\',false)">거절</button></div>';
+      html+='</div>';
+    });
+  }
+  html+='</div>';
+
+  // 보상 관리
+  html+='<div class="parent-section"><h3>🎁 보상 목록 관리</h3>';
+  html+='<div class="parent-form"><input id="newRewardName" type="text" placeholder="보상 이름 (예: 아이스크림)"><input id="newRewardCost" type="number" min="1" placeholder="포인트" style="max-width:90px;"><button onclick="addReward()">추가</button></div>';
+  const rewards=familyData.rewards||[];
+  if(rewards.length===0){html+='<div class="empty-note" style="margin-top:10px;">등록된 보상이 없어요.</div>';}
+  else rewards.forEach(r=>{html+='<div class="parent-row"><div>'+escapeHtml(r.name)+' <span style="color:#999;font-size:13px;">('+r.cost+'P)</span></div><button class="small-btn outline" onclick="deleteReward(\''+r.id+'\')">삭제</button></div>';});
+  html+='</div>';
+
+  // 자녀별 단어 시트 설정
+  html+='<div class="parent-section"><h3>📚 자녀별 단어 시트 설정</h3>';
+  html+='<div style="font-size:12px;color:#999;margin-bottom:12px;">구글 시트 "웹에 게시" CSV 링크를 아이별로 등록하세요.<br>링크가 없으면 기본 단어 목록이 표시됩니다.</div>';
+  if(children.length===0){
+    html+='<div class="empty-note" style="margin-top:0;">먼저 자녀를 추가해주세요.</div>';
+  } else {
+    children.forEach(c=>{
+      const sheets = c.sheets || [];
+      html+=`<div style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid #f1f1f1;">`;
+      html+=`<div style="font-weight:bold; margin-bottom:8px;">${c.avatar} ${escapeHtml(c.name)}</div>`;
+      // 기존 시트 목록
+      sheets.forEach((s,idx)=>{
+        html+=`<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;">
+          <input type="text" value="${escapeHtml(s.topic)}" placeholder="주제명"
+            style="width:90px;border:1px solid #ddd;border-radius:8px;padding:7px;font-size:13px;"
+            onchange="updateChildSheet('${c.id}',${idx},'topic',this.value)">
+          <input type="text" value="${escapeHtml(s.url)}" placeholder="CSV 링크"
+            style="flex:1;border:1px solid #ddd;border-radius:8px;padding:7px;font-size:11px;min-width:0;"
+            onchange="updateChildSheet('${c.id}',${idx},'url',this.value)">
+          <button class="small-btn outline" onclick="removeChildSheet('${c.id}',${idx})">✕</button>
+        </div>`;
+      });
+      // 시트 추가 버튼
+      html+=`<button class="small-btn" style="margin-top:4px;font-size:13px;" onclick="addChildSheet('${c.id}')">+ 시트 추가</button>`;
+      html+=`</div>`;
+    });
+  }
+  html+='</div>';
+
+  html+='<button class="logout-link" onclick="goMenu()">메뉴로 돌아가기</button>';
+  // 가족 코드 확인
+  const code = getFamilyCode();
+  html+=`<div style="text-align:center; margin-top:16px; padding:14px; background:#fff8e1; border-radius:12px;">
+    <div style="font-size:13px; color:#999; margin-bottom:6px;">📋 우리 가족 코드</div>
+    <div style="font-size:22px; font-weight:bold; color:#ff7043; letter-spacing:3px;">${code}</div>
+    <div style="font-size:12px; color:#999; margin-top:6px;">다른 기기에서 이 코드를 입력하면 연결돼요</div>
+  </div>`;
+  body.innerHTML=html;
+}
+
+async function addChildSheet(childId){
+  const child=(familyData.children||[]).find(c=>c.id===childId);
+  if(!child)return;
+  if(!child.sheets)child.sheets=[];
+  child.sheets.push({topic:'',url:''});
+  await saveFamily();
+  renderParentDashboard();
+}
+async function updateChildSheet(childId,idx,field,value){
+  const child=(familyData.children||[]).find(c=>c.id===childId);
+  if(!child||!child.sheets||!child.sheets[idx])return;
+  child.sheets[idx][field]=value.trim();
+  await saveFamily();
+}
+async function removeChildSheet(childId,idx){
+  const child=(familyData.children||[]).find(c=>c.id===childId);
+  if(!child||!child.sheets)return;
+  child.sheets.splice(idx,1);
+  await saveFamily();
+  renderParentDashboard();
+}
+
+async function adjustPoints(childId,n){
+  const child=(familyData.children||[]).find(c=>c.id===childId);
+  if(!child)return;
+  child.points=Math.max(0,(child.points||0)+n);
+  await saveFamily();
+  refreshPointDisplay();
+  renderParentDashboard();
+}
+async function addReward(){
+  const nameEl=document.getElementById('newRewardName');
+  const costEl=document.getElementById('newRewardCost');
+  const name=nameEl.value.trim();const cost=parseInt(costEl.value,10);
+  if(!name){alert('보상 이름을 입력해주세요.');return;}
+  if(!cost||cost<=0){alert('포인트(1 이상의 숫자)를 입력해주세요.');return;}
+  if(!familyData.rewards)familyData.rewards=[];
+  familyData.rewards.push({id:'rw_'+Date.now(),name,cost});
+  await saveFamily();renderParentDashboard();
+}
+async function deleteReward(id){
+  if(!confirm('이 보상을 삭제할까요?'))return;
+  familyData.rewards=(familyData.rewards||[]).filter(r=>r.id!==id);
+  await saveFamily();renderParentDashboard();
+}
+async function resolveRequest(reqId,approve){
+  const req=(familyData.requests||[]).find(r=>r.id===reqId);if(!req)return;
+  if(approve){
+    const child=(familyData.children||[]).find(c=>c.id===req.childId);
+    if(!child||(child.points||0)<req.cost){alert('포인트가 부족해서 승인할 수 없어요.');return;}
+    child.points-=req.cost;req.status='approved';
+  } else {req.status='denied';}
+  await saveFamily();refreshPointDisplay();renderParentDashboard();
+}
+
+/* ---- 전역 노출 (onclick에서 호출) ---- */
+window.selectChild=selectChild;window.switchChild=switchChild;
+window.showAddChildForm=showAddChildForm;window.hideAddChildForm=hideAddChildForm;
+window.selectAvatar=selectAvatar;window.confirmAddChild=confirmAddChild;
+window.startFlash=startFlash;window.flipCard=flipCard;window.prevCard=prevCard;window.nextCard=nextCard;
+window.speak=speak;window.speakFlashWord=speakFlashWord;
+window.startQuiz=startQuiz;window.answer=answer;
+window.startMemory=startMemory;
+window.startSpelling=startSpelling;window.submitSpell=submitSpell;window.speakSpelling=speakSpelling;
+window.openRewardShop=openRewardShop;window.requestReward=requestReward;
+window.openParent=openParent;window.pinPress=pinPress;window.pinBackspace=pinBackspace;window.pinClear=pinClear;
+window.adjustPoints=adjustPoints;window.addReward=addReward;window.deleteReward=deleteReward;window.resolveRequest=resolveRequest;
+window.addChildSheet=addChildSheet;window.updateChildSheet=updateChildSheet;window.removeChildSheet=removeChildSheet;
+window.goMenu=goMenu;window.loadData=loadData;window.reloadCurrentChild=reloadCurrentChild;
+window.submitFamilyCode=submitFamilyCode;
+
+/* ---- 시작 ---- */
+const savedId = getFamilyId();
+if(savedId){
+  // 이미 코드가 설정된 기기 → 바로 연결
+  FAMILY_ID = savedId;
+  familyRef = doc(db, 'families', FAMILY_ID);
+  initDB();
+} else {
+  // 처음 접속하는 기기 → 가족 코드 화면 표시
+  document.getElementById('childSelectScreen').style.display = 'none';
+  renderFamilyCodeScreen();
+  loadData(); // 단어는 미리 불러오기
+}
+</script>
+</body>
+</html>
